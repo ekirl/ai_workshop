@@ -48,7 +48,7 @@ app_ui = ui.page_sidebar(
         ui.markdown(
             r"""
             **How it works:**
-            Data is generated using a **bivariate normal distribution** 
+            Data is generated using a **bivariate normal distribution**
             with target covariance matrix $\Sigma = \begin{pmatrix} 1 & r \\ r & 1 \end{pmatrix}$.
             """
         ),
