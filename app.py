@@ -46,10 +46,10 @@ app_ui = ui.page_sidebar(
         ),
         ui.hr(),
         ui.markdown(
-            """
+            r"""
             **How it works:**
             Data is generated using a **bivariate normal distribution** 
-            with target covariance matrix $\\Sigma = \\begin{pmatrix} 1 & r \\\\ r & 1 \\end{pmatrix}$.
+            with target covariance matrix $\Sigma = \begin{pmatrix} 1 & r \\ r & 1 \end{pmatrix}$.
             """
         ),
         width=320,
@@ -61,12 +61,12 @@ app_ui = ui.page_sidebar(
         ),
         ui.card(
             ui.card_header("Summary Statistics & Regression Metrics"),
-            ui.output_table("stats_table"),
+            ui.output_ui("stats_table"),
             ui.markdown(
-                """
+                r"""
                 ### Key Takeaways
                 - **Correlation (r):** Controls the strength and direction of association.
-                - **Trend Line:** Fits Ordinary Least Squares (OLS) regression line $\\hat{Y} = \\beta_0 + \\beta_1 X$.
+                - **Trend Line:** Fits Ordinary Least Squares (OLS) regression line $\hat{Y} = \beta_0 + \beta_1 X$.
                 - **$R^2$ Score:** Indicates the proportion of variance in Y explained by X.
                 """
             ),
@@ -93,16 +93,12 @@ def server(input: Inputs, output: Outputs, session: Session):
     # Reactive calculation to generate data
     @reactive.calc
     def dataset():
-        # Trigger re-computation on resample button press
         input.btn_resample()
 
         r = input.corr()
         n = input.n_obs()
 
-        # Construct covariance matrix
         cov_matrix = np.array([[1.0, r], [r, 1.0]])
-
-        # Draw random bivariate normal samples
         mean = [0.0, 0.0]
         data = np.random.multivariate_normal(mean, cov_matrix, size=n)
 
@@ -115,7 +111,6 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
 
-        # Seaborn scatter plot with regression trend line
         sns.regplot(
             data=df,
             x="X",
@@ -142,35 +137,33 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         return fig
 
-    @render.table
+    @render.ui
     def stats_table():
         df = dataset()
         slope, intercept, r_val, p_val, std_err = stats.linregress(df["X"], df["Y"])
 
-        stats_df = pd.DataFrame(
-            {
-                "Metric": [
-                    "Sample Size (N)",
-                    "Target Correlation (r)",
-                    "Sample Correlation (r)",
-                    "Coefficient of Determination ($R^2$)",
-                    "Slope ($\\beta_1$)",
-                    "Intercept ($\\beta_0$)",
-                    "p-value",
-                ],
-                "Value": [
-                    f"{len(df)}",
-                    f"{input.corr():.2f}",
-                    f"{r_val:.4f}",
-                    f"{r_val**2:.4f}",
-                    f"{slope:.4f}",
-                    f"{intercept:.4f}",
-                    f"{p_val:.4e}" if p_val < 0.001 else f"{p_val:.4f}",
-                ],
-            }
-        )
+        stats_data = [
+            ("Sample Size (N)", f"{len(df)}"),
+            ("Target Correlation (r)", f"{input.corr():.2f}"),
+            ("Sample Correlation (r)", f"{r_val:.4f}"),
+            ("Coefficient of Determination (R²)", f"{r_val**2:.4f}"),
+            ("Slope (β₁)", f"{slope:.4f}"),
+            ("Intercept (β₀)", f"{intercept:.4f}"),
+            ("p-value", f"{p_val:.4e}" if p_val < 0.001 else f"{p_val:.4f}"),
+        ]
 
-        return stats_df
+        rows = [
+            ui.tags.tr(ui.tags.td(metric), ui.tags.td(value))
+            for metric, value in stats_data
+        ]
+
+        return ui.tags.table(
+            ui.tags.thead(
+                ui.tags.tr(ui.tags.th("Metric"), ui.tags.th("Value"))
+            ),
+            ui.tags.tbody(*rows),
+            class_="table table-striped table-hover",
+        )
 
 
 app = App(app_ui, server)
