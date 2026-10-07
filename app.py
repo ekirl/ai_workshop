@@ -46,13 +46,13 @@ app_ui = ui.page_sidebar(
         ),
         ui.hr(),
         ui.markdown(
-            r"""
-            **How it works:**
-            Data is generated using a **bivariate normal distribution**
-            with target covariance matrix $\Sigma = \begin{pmatrix} 1 & r \\ r & 1 \end{pmatrix}$.
+            """
+            **How it works:**  
+            Data is generated using a **bivariate normal distribution** with target covariance matrix:  
+            **Σ = [[1, r], [r, 1]]**
             """
         ),
-        width=320,
+        width=300,
     ),
     ui.layout_columns(
         ui.card(
@@ -60,20 +60,21 @@ app_ui = ui.page_sidebar(
             ui.output_plot("scatter_plot"),
         ),
         ui.card(
-            ui.card_header("Summary Statistics & Regression Metrics"),
+            ui.card_header("Summary Statistics & Metrics"),
             ui.output_ui("stats_table"),
             ui.markdown(
-                r"""
+                """
                 ### Key Takeaways
                 - **Correlation (r):** Controls the strength and direction of association.
-                - **Trend Line:** Fits Ordinary Least Squares (OLS) regression line $\hat{Y} = \beta_0 + \beta_1 X$.
-                - **$R^2$ Score:** Indicates the proportion of variance in Y explained by X.
+                - **Trend Line:** Fits Ordinary Least Squares (OLS) line **Ŷ = β₀ + β₁X**.
+                - **R² Score:** Proportion of variance in Y explained by X.
                 """
             ),
         ),
-        col_widths=[8, 4],
+        col_widths=[7, 5],
     ),
     title="Interactive Bivariate Normal Scatter Plot",
+    fillable=False,
 )
 
 
@@ -109,7 +110,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         df = dataset()
         r = input.corr()
 
-        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+        fig, ax = plt.subplots(figsize=(7, 5), dpi=100)
 
         sns.regplot(
             data=df,
@@ -117,23 +118,24 @@ def server(input: Inputs, output: Outputs, session: Session):
             y="Y",
             ax=ax,
             color="#2563eb" if r >= 0 else "#dc2626",
-            scatter_kws={"alpha": 0.6, "s": 35, "edgecolor": "none"},
+            scatter_kws={"alpha": 0.6, "s": 30, "edgecolor": "none"},
             line_kws={"color": "#0f172a", "linewidth": 2.5, "label": "OLS Trend Line"},
         )
 
         slope, intercept, r_val, p_val, std_err = stats.linregress(df["X"], df["Y"])
 
         ax.set_title(
-            f"Bivariate Normal Distribution (Target r = {r:.2f}, Sample r = {r_val:.2f})\n"
-            f"Regression Line: Y = {intercept:.2f} + {slope:.2f}X",
-            fontsize=12,
-            pad=12,
+            f"Target r = {r:.2f} | Sample r = {r_val:.2f}\n"
+            f"Fit: Y = {intercept:.2f} + {slope:.2f}X",
+            fontsize=11,
+            pad=10,
         )
         ax.set_xlabel("Variable X ~ N(0, 1)", fontsize=10)
         ax.set_ylabel("Variable Y ~ N(0, 1)", fontsize=10)
         ax.set_xlim(-4, 4)
         ax.set_ylim(-4, 4)
         ax.legend(loc="upper left")
+        plt.tight_layout()
 
         return fig
 
@@ -146,7 +148,7 @@ def server(input: Inputs, output: Outputs, session: Session):
             ("Sample Size (N)", f"{len(df)}"),
             ("Target Correlation (r)", f"{input.corr():.2f}"),
             ("Sample Correlation (r)", f"{r_val:.4f}"),
-            ("Coefficient of Determination (R²)", f"{r_val**2:.4f}"),
+            ("R² Score", f"{r_val**2:.4f}"),
             ("Slope (β₁)", f"{slope:.4f}"),
             ("Intercept (β₀)", f"{intercept:.4f}"),
             ("p-value", f"{p_val:.4e}" if p_val < 0.001 else f"{p_val:.4f}"),
@@ -162,7 +164,7 @@ def server(input: Inputs, output: Outputs, session: Session):
                 ui.tags.tr(ui.tags.th("Metric"), ui.tags.th("Value"))
             ),
             ui.tags.tbody(*rows),
-            class_="table table-striped table-hover",
+            class_="table table-sm table-striped table-hover",
         )
 
 
