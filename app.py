@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 
-from shiny import App, Inputs, Outputs, Session, render, ui
+from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
 # Set Seaborn theme aesthetics
 sns.set_theme(style="whitegrid")
@@ -80,18 +80,20 @@ app_ui = ui.page_sidebar(
 def server(input: Inputs, output: Outputs, session: Session):
 
     # Reactive event listeners for correlation preset buttons
-    @session.reactive.event(input.btn_pos)
+    @reactive.effect
+    @reactive.event(input.btn_pos)
     def _set_positive():
         ui.update_slider("corr", value=0.75)
 
-    @session.reactive.event(input.btn_neg)
+    @reactive.effect
+    @reactive.event(input.btn_neg)
     def _set_negative():
         ui.update_slider("corr", value=-0.75)
 
-    # Reactive calculation to generate data when inputs or resample button change
-    @render.data_frame
+    # Reactive calculation to generate data
+    @reactive.calc
     def dataset():
-        # Depend on resample button trigger
+        # Trigger re-computation on resample button press
         input.btn_resample()
 
         r = input.corr()
@@ -106,7 +108,6 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         return pd.DataFrame(data, columns=["X", "Y"])
 
-    @output
     @render.plot
     def scatter_plot():
         df = dataset()
@@ -125,7 +126,6 @@ def server(input: Inputs, output: Outputs, session: Session):
             line_kws={"color": "#0f172a", "linewidth": 2.5, "label": "OLS Trend Line"},
         )
 
-        # Compute regression equation for dynamic title
         slope, intercept, r_val, p_val, std_err = stats.linregress(df["X"], df["Y"])
 
         ax.set_title(
@@ -142,7 +142,6 @@ def server(input: Inputs, output: Outputs, session: Session):
 
         return fig
 
-    @output
     @render.table
     def stats_table():
         df = dataset()
